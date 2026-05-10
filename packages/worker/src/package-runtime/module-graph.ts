@@ -107,34 +107,6 @@ type RewriteState = {
 		string,
 		LoadedPackageSource & { row: SavedPackageRecord; prefix: string }
 	>
-	dependencies: Map<string, BundleArtifactDependency>
-}
-
-function createDependencyKey(dependency: BundleArtifactDependency) {
-	return `${dependency.sourceId}:${dependency.publishedCommit}:${dependency.kodyId}`
-}
-
-function rememberDependency(
-	state: RewriteState,
-	dependency: BundleArtifactDependency,
-) {
-	const key = createDependencyKey(dependency)
-	const existing = state.dependencies.get(key)
-	state.dependencies.set(
-		key,
-		existing?.packageName && !dependency.packageName
-			? { ...dependency, packageName: existing.packageName }
-			: dependency,
-	)
-}
-
-function rememberDependencies(
-	state: RewriteState,
-	dependencies: Array<BundleArtifactDependency>,
-) {
-	for (const dependency of dependencies) {
-		rememberDependency(state, dependency)
-	}
 }
 
 function createRelativeImportSpecifier(fromPath: string, targetPath: string) {
@@ -300,6 +272,15 @@ function resolveLocalImportPath(input: {
 		joinPath(basePath, 'index.mts'),
 		joinPath(basePath, 'index.cts'),
 	]
+	const substitutionBase = basePath.replace(/\.(?:js|jsx|mjs|cjs)$/, '')
+	if (substitutionBase !== basePath) {
+		candidates.push(
+			`${substitutionBase}.ts`,
+			`${substitutionBase}.tsx`,
+			`${substitutionBase}.mts`,
+			`${substitutionBase}.cts`,
+		)
+	}
 	return candidates.find((candidate) => input.files[candidate] != null) ?? null
 }
 
@@ -517,7 +498,6 @@ async function maybeEnsurePublishedArtifactTarget(input: {
 	if (!artifact?.artifact) {
 		return null
 	}
-	rememberDependencies(input.state, artifact.artifact.dependencies)
 	const artifactPrefix = joinPath(
 		input.loaded.prefix,
 		'.__published_bundle__',
@@ -581,14 +561,6 @@ async function ensurePackageLoaded(
 		prefix: joinPath(packageSourcePrefix, packageKey),
 	}
 	state.packages.set(packageKey, entry)
-	if (loaded.source.published_commit) {
-		rememberDependency(state, {
-			sourceId: loaded.source.id,
-			publishedCommit: loaded.source.published_commit,
-			kodyId: row.kodyId,
-			packageName: row.name,
-		})
-	}
 	for (const [filePath, content] of Object.entries(loaded.files)) {
 		const normalizedPath = normalizePackageWorkspacePath(filePath)
 		const targetPath = joinPath(entry.prefix, normalizedPath)
@@ -794,7 +766,6 @@ async function prepareKodyGraphFiles(input: {
 		rootPackage: readRootPackage(input.sourceFiles),
 		proxies: new Map(),
 		packages: new Map(),
-		dependencies: new Map(),
 	}
 	for (const [filePath, content] of Object.entries(input.sourceFiles)) {
 		const normalizedSourcePath = normalizePackageWorkspacePath(filePath)
@@ -825,7 +796,6 @@ async function prepareKodyGraphFiles(input: {
 	return {
 		files,
 		packages: state.packages,
-		dependencies: state.dependencies,
 	}
 }
 
