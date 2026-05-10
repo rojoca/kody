@@ -1397,10 +1397,10 @@ test('buildKodyModuleBundle keeps virtual package paths distinct for scoped pack
 		  }
 		| undefined
 	expect(firstCall?.files).toMatchObject({
-		'.__kody_packages__/@alice/shared-package/index.js':
-			'export const source = "@alice/shared-package"',
-		'.__kody_packages__/@bob/shared-package/index.js':
-			'export const source = "@bob/shared-package"',
+		'.__kody_packages__/@alice/shared-package/follow-up-on-pr-agent.js':
+			'export default "@alice/shared-package"',
+		'.__kody_packages__/@bob/shared-package/follow-up-on-pr-agent.js':
+			'export default "@bob/shared-package"',
 	})
 })
 

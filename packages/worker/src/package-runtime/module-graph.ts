@@ -512,6 +512,12 @@ function assertBundleHasNoUnresolvedBareImports(input: {
 	)
 }
 
+function hasBarePackageImports(files: Record<string, string>) {
+	return Object.values(files).some((source) =>
+		collectLiteralImportSpecifiers(source).some(isBarePackageImportSpecifier),
+	)
+}
+
 function materializeArtifactModuleSource(input: {
 	modulePath: string
 	module: WorkerLoaderModules[string]
@@ -698,8 +704,15 @@ async function ensurePackageProxy(
 								loaded,
 								entryPoint: exportPath,
 							})
+							const packageJson = loaded.files[packageManifestPath]
 							assertPublishedSourceCanRebuildWithoutInstallingDeps({
-								sourceFiles: materializedFiles,
+								sourceFiles:
+									packageJson && hasBarePackageImports(materializedFiles)
+										? {
+												[packageManifestPath]: packageJson,
+												...materializedFiles,
+											}
+										: materializedFiles,
 								bundleLabel: `Saved package export "${normalizePackageExportKey(
 									parsed.exportName,
 								)}"`,
