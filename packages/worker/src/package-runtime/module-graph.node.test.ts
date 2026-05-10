@@ -1173,6 +1173,17 @@ test('buildKodyModuleBundle records only entrypoint-reachable kody package depen
 			packageName: '@alice/reachable-package',
 		},
 	])
+	const workerInput = mockModule.createWorker.mock.calls[0]?.[0] as
+		| {
+				files?: Record<string, string>
+		  }
+		| undefined
+	expect(workerInput?.files?.['.__kody_root__/src/index.ts']).toContain(
+		'./reachable.ts',
+	)
+	expect(workerInput?.files?.['.__kody_root__/src/index.ts']).not.toContain(
+		'./reachable.js',
+	)
 })
 
 test('buildKodyModuleBundle follows self kody imports when recording reachable dependencies', async () => {

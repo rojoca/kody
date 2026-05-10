@@ -624,20 +624,42 @@ async function ensurePackageLoaded(
 		prefix: joinPath(packageSourcePrefix, packageKey),
 	}
 	state.packages.set(packageKey, entry)
-	for (const [filePath, content] of Object.entries(loaded.files)) {
-		const normalizedPath = normalizePackageWorkspacePath(filePath)
-		const targetPath = joinPath(entry.prefix, normalizedPath)
-		if (isTypeDeclarationFilePath(normalizedPath)) {
-			state.files[targetPath] = content
+	return entry
+}
+
+async function materializeReachablePackageFiles(input: {
+	state: RewriteState
+	loaded: LoadedPackageSource & { row: SavedPackageRecord; prefix: string }
+	entryPoint: string
+}) {
+	const reachableFiles = collectReachableSourceFilePaths({
+		files: input.loaded.files,
+		entryPoint: input.entryPoint,
+		rootPackage: {
+			manifest: input.loaded.manifest,
+			prefix: input.loaded.prefix,
+		},
+	})
+	const materializedFiles: Record<string, string> = {}
+	for (const filePath of reachableFiles) {
+		const content = input.loaded.files[filePath]
+		if (content == null) continue
+		materializedFiles[filePath] = content
+		const targetPath = joinPath(input.loaded.prefix, filePath)
+		if (isTypeDeclarationFilePath(filePath)) {
+			input.state.files[targetPath] = content
 			continue
 		}
-		state.files[targetPath] = await rewriteKodyImports({
-			state,
+		input.state.files[targetPath] = await rewriteKodyImports({
+			state: input.state,
 			source: content,
 			modulePath: targetPath,
+			sourceFiles: input.loaded.files,
+			sourcePath: filePath,
+			localImportBasePrefix: input.loaded.prefix,
 		})
 	}
-	return entry
+	return materializedFiles
 }
 
 async function ensurePackageProxy(
@@ -665,20 +687,25 @@ async function ensurePackageProxy(
 							specifier,
 							loaded,
 						})) ??
-						(() => {
-							assertPublishedSourceCanRebuildWithoutInstallingDeps({
-								sourceFiles: loaded.files,
-								bundleLabel: `Saved package export "${normalizePackageExportKey(
-									parsed.exportName,
-								)}"`,
-							})
+						(await (async () => {
 							const exportPath = resolvePackageExportSourcePath({
 								files: loaded.files,
 								manifest: loaded.manifest,
 								exportName: parsed.exportName,
 							})
+							const materializedFiles = await materializeReachablePackageFiles({
+								state,
+								loaded,
+								entryPoint: exportPath,
+							})
+							assertPublishedSourceCanRebuildWithoutInstallingDeps({
+								sourceFiles: materializedFiles,
+								bundleLabel: `Saved package export "${normalizePackageExportKey(
+									parsed.exportName,
+								)}"`,
+							})
 							return joinPath(loaded.prefix, exportPath)
-						})()
+						})())
 					)
 				})()
 	const proxyPath = joinPath(
@@ -700,6 +727,9 @@ async function rewriteKodyImports(input: {
 	state: RewriteState
 	source: string
 	modulePath: string
+	sourceFiles: Record<string, string>
+	sourcePath: string
+	localImportBasePrefix: string
 }) {
 	const importNodes = collectLiteralImportNodes(input.source)
 	if (importNodes.length === 0) return input.source
@@ -716,6 +746,25 @@ async function rewriteKodyImports(input: {
 			continue
 		}
 		if (!node.specifier.startsWith(packageSpecifierPrefix)) {
+			const localPath = resolveLocalImportPath({
+				files: input.sourceFiles,
+				fromPath: input.sourcePath,
+				specifier: node.specifier,
+			})
+			if (localPath) {
+				const targetPath = joinPath(input.localImportBasePrefix, localPath)
+				const replacement = createRelativeImportSpecifier(
+					input.modulePath,
+					targetPath,
+				)
+				if (replacement !== node.specifier) {
+					replacements.push({
+						start: node.start,
+						end: node.end,
+						value: JSON.stringify(replacement),
+					})
+				}
+			}
 			continue
 		}
 		const proxyPath = await ensurePackageProxy(input.state, node.specifier)
@@ -878,6 +927,9 @@ async function prepareKodyGraphFiles(input: {
 			state,
 			source: content,
 			modulePath: normalizedPath,
+			sourceFiles: input.sourceFiles,
+			sourcePath: normalizedSourcePath,
+			localImportBasePrefix: rootSourcePrefix,
 		})
 	}
 	return {
