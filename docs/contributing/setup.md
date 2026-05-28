@@ -75,10 +75,10 @@ Quick notes for getting a local kody environment running.
   repo-wide format checks remain explicit checks because they are heavier than
   the push gate.
 - `npm run validate` is the single authoritative gate and is what CI runs. It is
-  read-only and executes `format:check`, `lint`, `typecheck`, unit tests,
-  Playwright E2E, and MCP E2E in parallel, reporting every failure (sibling
-  checks are not aborted on the first failure). If `npm run validate` passes
-  locally, CI will pass.
+  read-only and executes `format:check`, `lint`, `docs:check-temporal`,
+  `typecheck`, unit tests, Playwright E2E, and MCP E2E in parallel, reporting
+  every failure (sibling checks are not aborted on the first failure). If
+  `npm run validate` passes locally, CI will pass.
 - `npm run validate:fix` runs `format` + `lint:fix` and is the explicit opt-in
   for mutating auto-fixes. It is never required to pass `validate`.
 - `npm run format` applies formatting updates on its own.
