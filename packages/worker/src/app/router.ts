@@ -18,6 +18,7 @@ import {
 } from '#app/handlers/admin-roles.ts'
 import { createAccountHandler } from '#app/handlers/account.ts'
 import { createAccountDeleteHandler } from '#app/handlers/account-delete.ts'
+import { createAccountExportHandler } from '#app/handlers/account-export.ts'
 import {
 	createAccountIntegrationsApiHandler,
 	createAccountIntegrationsHandler,
@@ -91,6 +92,7 @@ export function createAppRouter(appEnv: AppEnv) {
 			signup: createSignupHandler(env),
 			account: createAccountHandler(env),
 			accountDelete: createAccountDeleteHandler(env),
+			accountExport: createAccountExportHandler(env),
 			accountIntegrations: createAccountIntegrationsHandler(env),
 			accountIntegrationsApi: createAccountIntegrationsApiHandler(env),
 			accountPackageInvocationTokens:
