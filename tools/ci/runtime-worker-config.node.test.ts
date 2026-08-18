@@ -141,7 +141,7 @@ function buildMainGeneratedConfig(envName: string) {
 		vars: {
 			APP_BASE_URL: 'https://kody-pr-7.example.workers.dev',
 			PACKAGE_APP_BASE_URL:
-				envName === 'production' ? 'https://pkg.rojoca.net' : '',
+				envName === 'production' ? 'https://rojoca.net' : '',
 			PACKAGE_APP_LEGACY_HOSTS: '',
 		},
 	}
@@ -303,8 +303,8 @@ test('generate publishes the package-app custom domain for production', async ()
 		// custom domain in a zone whose route table the deploy also publishes
 		// gets detached (deleting its DNS record) when the routes are replaced.
 		expect(runtimeConfig.env?.production?.routes).toEqual([
-			{ pattern: 'pkg.rojoca.net/*', zone_name: 'rojoca.net' },
-			{ pattern: '*.pkg.rojoca.net/*', zone_name: 'rojoca.net' },
+			{ pattern: 'rojoca.net/*', zone_name: 'rojoca.net' },
+			{ pattern: '*.rojoca.net/*', zone_name: 'rojoca.net' },
 		])
 		expect(runtimeConfig.env?.production?.name).toBe('kody-runtime')
 		expect(runtimeConfig.env?.production?.workers_dev).toBe(true)
@@ -365,8 +365,8 @@ test('generate keeps a GitHub PACKAGE_APP_LEGACY_HOSTS overlay on runtime zone r
 			runtimeConfig.env?.production?.vars?.PACKAGE_APP_LEGACY_REDIRECT,
 		).toBe('true')
 		expect(runtimeConfig.env?.production?.routes).toEqual([
-			{ pattern: 'pkg.rojoca.net/*', zone_name: 'rojoca.net' },
-			{ pattern: '*.pkg.rojoca.net/*', zone_name: 'rojoca.net' },
+			{ pattern: 'rojoca.net/*', zone_name: 'rojoca.net' },
+			{ pattern: '*.rojoca.net/*', zone_name: 'rojoca.net' },
 			{ pattern: 'kodyapps.dev/*', zone_name: 'kodyapps.dev' },
 			{ pattern: '*.kodyapps.dev/*', zone_name: 'kodyapps.dev' },
 			{

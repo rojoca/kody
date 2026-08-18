@@ -256,7 +256,7 @@
 				"SENTRY_ENVIRONMENT": "production",
 				"SENTRY_TRACES_SAMPLE_RATE": 0,
 				"ARTIFACTS_NAMESPACE": "production",
-				"PACKAGE_APP_BASE_URL": "https://pkg.rojoca.net",
+				"PACKAGE_APP_BASE_URL": "https://rojoca.net",
 			},
 		},
 		"preview": {
